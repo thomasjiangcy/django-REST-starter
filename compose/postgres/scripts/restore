@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# Restore database from a backup.
+#
+# Parameters:
+#     <1> filename of an existing backup.
+#
+# Usage:
+#     $ docker-compose run --rm db restore <1>
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+
+backup_filename="${1}"
+
+echo "Restoring the '${POSTGRES_DB}' database from the '${backup_filename}' backup..."
+
+export PGPASSWORD="${POSTGRES_PASSWORD}"
+
+echo "Dropping all connections to the database..."
+# Source: http://dba.stackexchange.com/a/11895
+drop_postgres_connections_sql='UPDATE pg_database'
+drop_postgres_connections_sql+=" SET datallowconn = 'false'"
+drop_postgres_connections_sql+=" WHERE datname = '${POSTGRES_DB}';"
+drop_postgres_connections_sql+='SELECT pg_terminate_backend(pid)'
+drop_postgres_connections_sql+=' FROM pg_stat_activity'
+drop_postgres_connections_sql+=" WHERE datname = '${POSTGRES_DB}';"
+
+psql \
+    --host=${POSTGRES_HOST} \
+    --username=postgres \
+    --dbname=postgres \
+    --command="${drop_postgres_connections_sql}"
+
+echo "Dropping the database..."
+dropdb \
+    --host=${POSTGRES_HOST} \
+    --port=${POSTGRES_PORT} \
+    --username="${POSTGRES_USER}" \
+    "${POSTGRES_DB}"
+
+echo "Creating a new database..."
+createdb \
+    --host=${POSTGRES_HOST} \
+    --port=${POSTGRES_PORT} \
+    --username="${POSTGRES_USER}" \
+    "${POSTGRES_DB}"
+
+echo "Applying the backup to the new database..."
+gunzip -c "${backup_filename}" \
+    | psql \
+        --host=${POSTGRES_HOST} \
+        --port=${POSTGRES_PORT} \
+        --username="${POSTGRES_USER}" \
+        "${POSTGRES_DB}"
+
+echo "The '${POSTGRES_DB}' database has been restored from the '${backup_filename}' backup."

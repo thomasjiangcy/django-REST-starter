@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+python /app/manage.py migrate
+python /app/manage.py collectstatic --noinput
+
+gunicorn config.asgi:application \
+    -w ${GUNICORN_WORKERS} \
+    -k uvicorn.workers.UvicornWorker \
+    -b 0.0.0.0:8000 \
+    --reload

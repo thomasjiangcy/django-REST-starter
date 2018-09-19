@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+echo "Starting celery..."
+
+celery multi start worker -A app.taskapp.celery \
+       -l INFO \
+       --logfile=/var/log/celery/%n%I_$(date '+%Y-%m-%d_%H-%M-%S').log \
+       --pidfile=/var/run/celery/%n%I_$(date '+%Y-%m-%d_%H-%M-%S').pid && \
+celery -A app.taskapp.celery beat \
+       -s /var/run/celery/beat-schedule_$(date '+%Y-%m-%d_%H-%M-%S') \
+       -l INFO \
+       --logfile=/var/log/celery/beat-schedule_$(date '+%Y-%m-%d_%H-%M-%S').log \
+       --pidfile=/var/run/celery/beat-schedule_$(date '+%Y-%m-%d_%H-%M-%S').pid

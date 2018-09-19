@@ -1,0 +1,97 @@
+version: '3.4'
+
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  rabbit_data: {}
+
+services:
+  db:
+    container_name: app_db
+    build: ./compose/postgres
+    restart: on-failure
+    volumes:
+      - ./compose/postgres/postgresql.conf:/etc/postgresql.conf
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups/postgres:/backups
+    command: postgres -c config_file=/etc/postgresql.conf
+    env_file:
+      - ./.envs/.db.env
+
+  rabbitmq:
+    container_name: app_rabbitmq
+    image: rabbitmq:3.7-alpine
+    restart: on-failure
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    env_file:
+      - ./.envs/.rabbitmq.env
+
+  redis:
+    container_name: app_redis
+    image: redis:4-alpine
+    restart: on-failure
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - redis_data:/data
+      - ./compose/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    env_file:
+      - ./.envs/.redis.env
+
+  web: &web
+    container_name: app_web
+    build:
+      context: .
+      dockerfile: ./compose/web/Dockerfile.dev
+    restart: on-failure
+    volumes:
+      - .:/app
+      - ./staticfiles:/app/staticfiles
+    ports:
+      - "8000"
+    env_file:
+      - ./.envs/.db.env
+      - ./.envs/.rabbitmq.env
+      - ./.envs/.redis.env
+      - ./.envs/.web.env
+    depends_on:
+      - db
+      - rabbitmq
+      - redis
+    command: /start
+
+  celery:
+    <<: *web
+    container_name: app_celery
+    volumes:
+      - .:/app
+      - ./logs:/var/log/celery
+    command: /start-celery
+
+  nginx:
+    container_name: app_nginx
+    build:
+      context: .
+      dockerfile: ./compose/nginx/Dockerfile
+    restart: on-failure
+    ports:
+      - "80:80"
+    volumes:
+      - ./staticfiles:/staticfiles
+      - ./compose/nginx/conf.d:/etc/nginx/conf.d:rw
+      - ./compose/nginx/vhost.d:/etc/nginx/vhost.d:rw
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    env_file:
+      - ./.envs/.proxy.env
+    depends_on:
+      - web
+
+  mailhog:
+    container_name: app_mailhog
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+
+  swagger_validator:
+    container_name: app_swagger_validator
+    image: swaggerapi/swagger-validator

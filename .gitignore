@@ -1,0 +1,34 @@
+# Add any directories, files, or patterns you don't want to be tracked by version control
+**/.DS_Store
+**/.vscode
+**/.idea
+*.pyc
+.pytest_cache
+.tox
+
+# coverage
+**/htmlcov/*
+.coverage
+
+# Static build
+**staticfiles
+
+# Environment
+.*.env
+
+# DB
+**/backups/postgres/*
+!**/backups/postgres/.gitkeep
+
+# Nginx
+**/conf.d/*
+**/vhost.d/*
+!**/conf.d/.gitkeep
+!**/vhost.d/.gitkeep
+
+# Misc
+**/logs/*
+!**/logs/.gitkeep
+
+# Docs
+docs/_build/

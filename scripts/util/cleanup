@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+tty -s && prefix=$(tput bold)$(tput setaf 4)[Cleanup] $(tput sgr0) || prefix=''
+
+docker rmi $(docker images -q -f dangling=true) || echo "${prefix}No dangling images."
+docker rm $(docker ps -aq -f status=exited) || echo "${prefix}No stale containers."

@@ -1,0 +1,47 @@
+version: '3.4'
+
+volumes:
+  postgres_data: {}
+
+services:
+  db:
+    container_name: app_db
+    build: ./compose/postgres
+    restart: on-failure
+    volumes:
+      - ./compose/postgres/postgresql.test.conf:/etc/postgresql.conf
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups/postgres:/backups
+    command: postgres -c config_file=/etc/postgresql.conf
+    env_file:
+      - ./.envs/.db.env
+
+  web: &web
+    container_name: app_web
+    build:
+      context: .
+      dockerfile: ./compose/web/Dockerfile.dev
+    restart: on-failure
+    volumes:
+      - .:/app
+      - ./staticfiles:/app/staticfiles
+    ports:
+      - "8000"
+    environment:
+      - SKIP_RABBIT=true
+    env_file:
+      - ./.envs/.db.env
+      - ./.envs/.rabbitmq.env
+      - ./.envs/.redis.env
+      - ./.envs/.web.env
+    depends_on:
+      - db
+    command: /start
+
+  celery:
+    <<: *web
+    container_name: app_celery
+    volumes:
+      - .:/app
+      - ./logs:/var/log/celery
+    command: /start-celery

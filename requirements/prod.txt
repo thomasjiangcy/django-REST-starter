@@ -1,0 +1,4 @@
+-r base.txt
+
+django-anymail[sendgrid]==4.0
+raven==6.9.0

@@ -1,0 +1,64 @@
+#!/bin/sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+if [ -z "${POSTGRES_USER}" ]; then
+    base_postgres_image_default_user='postgres'
+    export DB_USER="${base_postgres_image_default_user}"
+fi
+export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+
+postgres_ready() {
+python << END
+import sys
+import psycopg2
+try:
+    psycopg2.connect(
+        dbname="${POSTGRES_DB}",
+        user="${POSTGRES_USER}",
+        password="${POSTGRES_PASSWORD}",
+        host="${POSTGRES_HOST}",
+        port="${POSTGRES_PORT}",
+    )
+except psycopg2.OperationalError:
+    sys.exit(-1)
+sys.exit(0)
+END
+}
+until postgres_ready; do
+  >&2 echo 'Waiting for PostgreSQL to become available...'
+  sleep 1
+done
+>&2 echo 'PostgreSQL is available'
+
+rabbit_ready() {
+python << END
+import os
+import sys
+import pika
+AMQP_CREDENTIALS = pika.PlainCredentials(os.getenv('RABBITMQ_DEFAULT_USER', 'guest'),
+                                         os.getenv('RABBITMQ_DEFAULT_PASS', 'guest'))
+AMQP_PARAMETERS = pika.ConnectionParameters(host=os.getenv('RABBITMQ_HOST', 'rabbitmq'),
+                                            port=int(os.getenv('RABBITMQ_PORT', 5672)),
+                                            virtual_host=os.getenv('RABBITMQ_DEFAULT_VHOST', '/'),
+                                            credentials=AMQP_CREDENTIALS)
+try:
+    amqp_connection = pika.BlockingConnection(parameters=AMQP_PARAMETERS)
+    amqp_connection.close()
+except pika.exceptions.AMQPConnectionError as err:
+    sys.exit(-1)
+sys.exit(0)
+END
+}
+if [ -z ${SKIP_RABBIT} ]; then
+    until rabbit_ready; do
+    >&2 echo 'Waiting for RabbitMQ to become available...'
+    sleep 1
+    done
+    >&2 echo 'RabbitMQ is available'
+fi
+
+exec "$@"
+

@@ -1,0 +1,114 @@
+version: '3.4'
+
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  rabbit_data: {}
+  certs: {}
+  dhparam: {}
+  acme: {}
+
+services:
+  db:
+    container_name: app_db
+    build: ./compose/postgres
+    restart: on-failure
+    volumes:
+      - ./compose/postgres/postgresql.conf:/etc/postgresql.conf
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups/postgres:/backups
+    command: postgres -c config_file=/etc/postgresql.conf
+    env_file:
+      - ./.envs/.db.env
+
+  rabbitmq:
+    container_name: app_rabbitmq
+    image: rabbitmq:3.7-alpine
+    restart: on-failure
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    env_file:
+      - ./.envs/.rabbitmq.env
+
+  redis:
+    container_name: app_redis
+    image: redis:4-alpine
+    restart: on-failure
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - redis_data:/data
+      - ./compose/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    env_file:
+      - ./.envs/.redis.env
+
+  web: &web
+    container_name: app_web
+    build:
+      context: .
+      dockerfile: ./compose/web/Dockerfile
+    restart: on-failure
+    volumes:
+      - .:/app
+      - ./staticfiles:/app/staticfiles
+    ports:
+      - "8000"
+    env_file:
+      - ./.envs/.db.env
+      - ./.envs/.rabbitmq.env
+      - ./.envs/.redis.env
+      - ./.envs/.web.env
+    depends_on:
+      - db
+      - rabbitmq
+      - redis
+    command: /start
+
+  celery:
+    <<: *web
+    container_name: app_celery
+    volumes:
+      - .:/app
+      - ./logs:/var/log/celery
+    command: /start-celery
+
+  nginx:
+    container_name: app_nginx
+    build:
+      context: .
+      dockerfile: ./compose/nginx/Dockerfile
+    restart: on-failure
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./staticfiles:/staticfiles
+      - ./compose/nginx/conf.d:/etc/nginx/conf.d:rw
+      - ./compose/nginx/vhost.d:/etc/nginx/vhost.d:rw
+      - certs:/etc/nginx/certs:rw
+      - dhparam:/etc/nginx/dhparam:rw
+      - acme:/usr/share/nginx/html:rw
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    env_file:
+      - ./.envs/.proxy.env
+    depends_on:
+      - web
+
+  letsencrypt:
+    container_name: app_letsencrypt
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    restart: on-failure
+    volumes:
+      - ./compose/nginx/conf.d:/etc/nginx/conf.d:rw
+      - ./compose/nginx/vhost.d:/etc/nginx/vhost.d:rw
+      - acme:/usr/share/nginx/html
+      - certs:/etc/nginx/certs:rw
+      - dhparam:/etc/nginx/dhparam:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env_file:
+      - ./.envs/.proxy.env
+    depends_on:
+      - nginx
+
+  swagger_validator:
+    container_name: app_swagger_validator
+    image: swaggerapi/swagger-validator

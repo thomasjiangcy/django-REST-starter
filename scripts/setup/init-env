@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+tty -s && prefix=$(tput bold)$(tput setaf 3)[Setup] $(tput sgr0) || prefix=''
+script_parent=$(cd $(dirname ${BASH_SOURCE}) && pwd -P)
+scripts_root=$(cd $(dirname ${script_parent}) && pwd -P)
+project_root=$(cd $(dirname ${scripts_root}) && pwd -P)
+
+echo "${prefix}checking for missing env files..."
+
+for env in ".db.env" ".proxy.env" ".rabbitmq.env" ".redis.env" ".web.env"; do
+  if [ -e "${project_root}"/.envs/"${env}" ]; then
+    echo "${prefix}${env} exists."
+  else
+    echo "${prefix}${env} does not exist, making a copy."
+    cp "${project_root}"/.envs/sample${env} "${project_root}/.envs/${env}"
+  fi
+done
+
+echo "${prefix}env files checked."
