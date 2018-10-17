@@ -4,7 +4,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-prefix=$(tput bold)$(tput setaf 3)[Setup]$(tput sgr0)
 script_parent=$(cd $(dirname ${BASH_SOURCE}) && pwd -P)
 scripts_root=$(cd $(dirname ${script_parent}) && pwd -P)
 project_root=$(cd $(dirname ${scripts_root}) && pwd -P)
@@ -13,7 +12,7 @@ set -a
 
 for env in ".db.env" ".proxy.env" ".rabbitmq.env" ".redis.env" ".web.env"; do
   source "${project_root}/.envs/${env}"
-  echo "${prefix} Set env file: ${env}"
+  echo " Set env file: ${env}"
 done
 
-echo "${prefix} $(tput setaf 2)Set all env files.$(tput sgr0)"
+echo "Set all env files."

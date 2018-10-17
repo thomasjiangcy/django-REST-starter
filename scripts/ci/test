@@ -4,7 +4,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-tty -s && prefix=$(tput bold)$(tput setaf 2)[Tests] $(tput sgr0) || prefix=''
 script_parent=$(cd $(dirname ${BASH_SOURCE}) && pwd -P)
 scripts_root=$(cd $(dirname ${script_parent}) && pwd -P)
 project_root=$(cd $(dirname ${scripts_root}) && pwd -P)
@@ -13,7 +12,7 @@ project_root=$(cd $(dirname ${scripts_root}) && pwd -P)
 ${project_root}/scripts/setup/init-env
 
 # Start containers
-echo "${prefix}Running tests"
+echo "Running tests"
 
 docker-compose -f ${project_root}/docker-compose.test.yml up -d --build
 
