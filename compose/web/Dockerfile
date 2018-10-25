@@ -14,8 +14,8 @@ RUN apk update && \
     # CFFI dependencies
     apk add libffi-dev py-cffi
 
-RUN addgroup -S dathena && \
-    adduser -S -G dathena dathena
+RUN addgroup -S django && \
+    adduser -S -G django django
 
 RUN mkdir -p /var/log/celery /var/run/celery
 
@@ -28,21 +28,21 @@ RUN pip3 install --no-cache-dir --disable-pip-version-check -r /requirements/pro
 COPY ./compose/web/scripts/entrypoint /entrypoint
 RUN sed -i 's/\r//' /entrypoint
 RUN chmod +x /entrypoint
-RUN chown dathena /entrypoint
+RUN chown django /entrypoint
 
 COPY ./compose/web/scripts/start /start
 RUN sed -i 's/\r//' /start
 RUN chmod +x /start
-RUN chown dathena /start
+RUN chown django /start
 
 COPY ./compose/web/scripts/start-celery /start-celery
 RUN sed -i 's/\r//' /start-celery
 RUN chmod +x /start-celery
-RUN chown dathena /start-celery
+RUN chown django /start-celery
 
 COPY . /app
 
-RUN chown -R dathena /app
+RUN chown -R django /app
 
 WORKDIR /app
 

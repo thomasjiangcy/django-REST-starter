@@ -13,7 +13,7 @@ DEBUG = env.bool('DJANGO_DEBUG', False)
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['dathena.io'])
+    ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['example.com'])
 
 
 ENABLE_ADMIN = env.bool('DJANGO_ENABLE_ADMIN', False)
@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     'channels',
     'corsheaders',
     'rest_framework',
-    # Dathena Privacy
+    # Apps
     'app.taskapp.celery.CeleryConfig',
 ]
 
@@ -95,8 +95,8 @@ ASGI_APPLICATION = 'config.routing.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('POSTGRES_DB', default='dathena'),
-        'USER': env('POSTGRES_USER', default='dathena'),
+        'NAME': env('POSTGRES_DB', default='app'),
+        'USER': env('POSTGRES_USER', default='user'),
         'PASSWORD': env('POSTGRES_PASSWORD', default='changeme'),
         'HOST': env('POSTGRES_HOST', default='db'),
         'PORT': env.int('POSTGRES_PORT', default=5432),
@@ -215,12 +215,12 @@ BROKER_URL = 'amqp://{user}:{password}@{hostname}:{port}{vhost}/'.format(
 )
 
 # Email
-DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='noreply@dathena.io')
-EMAIL_SUBJECT_PREFIX = env('DJANGO_EMAIL_SUBJECT_PREFIX', default='Dathena | ')
+DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='example_user@example.com')
+EMAIL_SUBJECT_PREFIX = env('DJANGO_EMAIL_SUBJECT_PREFIX', default='App | ')
 
 # API Version
 API_VERSION = env('API_VERSION')
-UI_BASE_URL = env('UI_BASE_URL', default='https://privacy.dathena.io')
+UI_BASE_URL = env('UI_BASE_URL', default='https://www.example.com')
 
 # DRF
 REST_FRAMEWORK = {
