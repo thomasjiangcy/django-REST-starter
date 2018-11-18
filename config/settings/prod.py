@@ -2,10 +2,17 @@
 Production-specific settings
 """
 
-import logging
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 from .base import *  # noqa
 from .base import env
+
+# Raven / Sentry
+sentry_sdk.init(
+    env('SENTRY_DSN'),
+    integrations=[DjangoIntegration()]
+)
 
 # Database
 DATABASES['default']['ATOMIC_REQUESTS'] = True  # noqa F405
@@ -46,60 +53,4 @@ X_FRAME_OPTIONS = 'DENY'
 EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
 ANYMAIL = {
     'SENDGRID_API_KEY': env('SENDGRID_API_KEY'),
-}
-
-
-# Raven / Sentry
-INSTALLED_APPS += ['raven.contrib.django.raven_compat']  # noqa F405
-MIDDLEWARE = ['raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware'] + MIDDLEWARE  # noqa F405
-RAVEN_CONFIG = {
-    'dsn': env('SENTRY_DSN'),
-    'CELERY_LOGLEVEL': logging.INFO
-}
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': True,
-    'root': {
-        'level': 'WARNING',
-        'handlers': ['sentry', 'sentry'],
-    },
-    'formatters': {
-        'verbose': {
-            'format': '%(levelname)s %(asctime)s %(module)s '
-                      '%(process)d %(thread)d %(message)s'
-        },
-    },
-    'handlers': {
-        'sentry': {
-            'level': 'ERROR',
-            'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
-        },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'sentry'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'raven': {
-            'level': 'DEBUG',
-            'handlers': ['console'],
-            'propagate': False,
-        },
-        'sentry.errors': {
-            'level': 'DEBUG',
-            'handlers': ['console'],
-            'propagate': False,
-        },
-        'django.security.DisallowedHost': {
-            'level': 'ERROR',
-            'handlers': ['console', 'sentry'],
-            'propagate': False,
-        },
-    },
 }
