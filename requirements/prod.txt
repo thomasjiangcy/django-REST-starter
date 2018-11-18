@@ -1,4 +1,4 @@
 -r base.txt
 
-django-anymail[sendgrid]==4.0
-raven==6.9.0
+django-anymail[sendgrid]==5.0
+sentry-sdk==0.5.5
